@@ -1,0 +1,864 @@
+---
+title: "STAT472 Final"
+author: "Katie Manzione"
+date: "3/2/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+library(readr)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+```
+
+
+```{r}
+setwd("~/Desktop")
+olympic <- read_csv("olympicdata.csv")
+olympic<- olympic[,c("Sex", "Age", "Height", "Weight", "Team", "Games", "Year", "Sport", "Medal")]
+olympic$Games <- gsub("\\d", "", olympic$Games)
+olympic$Games <- trimws(olympic$Games)
+olympic <- subset(olympic, Games == "Summer")
+olympic$Medal[is.na(olympic$Medal)] <- 0
+olympic <- olympic %>%
+  mutate(Medal = recode(Medal, "Gold" = "1", "Silver" = "1", "Bronze" = "1"))
+olympic$Medal <- as.numeric(olympic$Medal)
+olympic <- na.omit(olympic)
+olympic$Medal <- as.factor(olympic$Medal)
+#olympic$Year <- as.factor(olympic$Year)
+
+olympic <- olympic %>%
+  mutate(Developed = Team) %>%
+  mutate(Developed = recode(Developed, "Canada" = "1", "France"= "1", "Germany"= "1", "Italy"= "1", "Japan"= "1", "Great Britain"= "1", "United States"= "1", "Iceland"= "1", "Norway"= "1", "Switzerland"= "1", "Austria"= "1", "Belgium"= "1", "Denmark"= "1", "Finland"= "1", "Greece"= "1", "Ireland"= "1", "Luxembourg"= "1", "Netherlands"= "1", "Portugal"= "1", "Spain"= "1", "Sweden"= "1", "Australia" = "1", "Japan" = "1", "New Zealand" = "1", "Bulgaria" = "1", "Croatia"= "1", "Cyprus" = "1", "Estonia" = "1", "Czech Republic" = "1", "Hungary" = "1", "Latvia" = "1", "Lithuania" = "1", "Malta"  = "1", "Poland" = "1", "Romania" = "1", "Slovakia" = "1", "Slovenia" = "1"))
+olympic$Developed[olympic$Developed != "1"] <- 0
+head(olympic)
+nrow(olympic)
+```
+
+```{r}
+olympic$Sport <- as.factor(olympic$Sport)
+```
+
+--> use potentially: Cycling (7775), Diving (2011), Fencing (6537), Gymnastics (18271), Shooting (7260), Swimming (18776), Weightlifting (2974), Wrestling (5186)
+--> there are "individual" sports. accounts for confounding of "how good the team is"
+
+
+```{r}
+sportList <- c("Cycling", "Diving", "Fencing", "Gymnastics", "Shooting", "Swimming", "Weightlifting", "Wrestling")
+
+
+cycling <- subset(olympic, Sport == sportList[1])
+cycling <- cycling[which(cycling$Year > 1960),]
+
+diving <- subset(olympic, Sport == sportList[2])
+diving <- diving[which(diving$Year > 1960),]
+
+fencing <- subset(olympic, Sport == sportList[3])
+fencing <- fencing[which(fencing$Year > 1960),]
+
+gymnastics <- subset(olympic, Sport == sportList[4])
+gymnastics <- gymnastics[which(gymnastics$Year > 1960),]
+
+shooting <- subset(olympic, Sport == sportList[5])
+shooting <- shooting[which(shooting$Year > 1960),]
+
+swimming <- subset(olympic, Sport == sportList[6])
+swimming <- swimming[which(swimming$Year > 1960),]
+
+weightlifting <- subset(olympic, Sport == sportList[7])
+weightlifting <- weightlifting[which(weightlifting$Year > 1960),]
+
+wrestling <- subset(olympic, Sport == sportList[8])
+wrestling <- wrestling[which(wrestling$Year > 1960),]
+
+
+my_olympic <- rbind(cycling, diving, fencing, gymnastics, shooting, swimming, weightlifting, wrestling)
+```
+
+# EDA
+
+## Developed
+
+```{r, warning = FALSE}
+olympic_developed1 <- ggplot(my_olympic) +
+  geom_bar(aes(x=Year, fill=as.factor(Developed))) +
+  ggtitle("Plot of Country Classification by Time")
+olympic_developed1
+
+olympic_developed2 <- ggplot(my_olympic) +
+  geom_bar(aes(x=Medal, fill=as.factor(Developed)))+
+  ggtitle("Barplot of Medal by Developed")
+olympic_developed2
+```
+
+
+## Gender
+
+```{r, warning=FALSE}
+cycling_gender <- ggplot(cycling)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Cycling by Gender")
+
+diving_gender <- ggplot(diving)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Diving by Gender")
+
+fencing_gender <- ggplot(fencing)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Fencing by Gender")
+
+gymnastics_gender <- ggplot(gymnastics)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Gymnastics by Gender")
+
+shooting_gender <- ggplot(shooting)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Shooting by Gender")
+
+swimming_gender <- ggplot(swimming)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Swimming by Gender")
+
+weightlifting_gender <- ggplot(weightlifting)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Weightlifting by Gender")
+
+wrestling_gender <- ggplot(wrestling)+
+  geom_bar(aes(x=Year, fill=as.factor(Sex))) +
+  ggtitle("Wrestling by Gender")
+```
+
+```{r}
+ggarrange(cycling_gender, diving_gender, fencing_gender, gymnastics_gender, shooting_gender, swimming_gender, weightlifting_gender, wrestling_gender, ncol=2, nrow=2)
+```
+
+--subsetted to 1900 to present because 1900 was the first year that women competed at the olympics (olympics citation)
+
+--cycling, fencing, weightlifting, wrestling looks like female proportions increase
+--diving, gymnastics, shooting, swimming female/male proportions about equal
+
+
+## Medals
+
+```{r, warning=FALSE}
+cycling_medal <- ggplot(cycling)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Cycling Medals")
+
+diving_medal <- ggplot(diving)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Diving Medals")
+
+fencing_medal <- ggplot(fencing)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Fencing Medals")
+
+gymnastics_medal <- ggplot(gymnastics)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Gymnastics Medals")
+
+shooting_medal <- ggplot(shooting)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Shooting Medals")
+
+swimming_medal <- ggplot(swimming)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Swimming Medals")
+
+weightlifting_medal <- ggplot(weightlifting)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Weightlifting Medals")
+
+wrestling_medal <- ggplot(wrestling)+
+  geom_bar(aes(x=Medal, fill=as.factor(Developed))) +
+  ggtitle("Wrestling Medals")
+```
+
+
+```{r}
+ggarrange(cycling_medal, diving_medal, fencing_medal, gymnastics_medal, shooting_medal, swimming_medal, weightlifting_medal, wrestling_medal, ncol=2, nrow=2)
+```
+
+## Height
+
+```{r, warning=FALSE}
+cycling_height <- ggplot(cycling)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Cycling Height")
+
+diving_height <- ggplot(diving)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Diving Height")
+
+fencing_height <- ggplot(fencing)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Fencing Height")
+
+gymnastics_height <- ggplot(gymnastics)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Gymnastics Height")
+
+shooting_height <- ggplot(shooting)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Shooting Height")
+
+swimming_height <- ggplot(swimming)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Swimming Height")
+
+weightlifting_height <- ggplot(weightlifting)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Weightlifting Height")
+
+wrestling_height <- ggplot(wrestling)+
+  geom_density(aes(x=Height, col=as.factor(Medal))) +
+  ggtitle("Wrestling Height")
+```
+
+```{r}
+ggarrange(cycling_height, diving_height, fencing_height, gymnastics_height, shooting_height, swimming_height, weightlifting_height, wrestling_height, ncol=2, nrow=2)
+```
+
+--all relatively symmetric and normally distributed
+
+
+
+
+
+```{r, warning=FALSE}
+cycling_height_time <- ggplot(cycling)+
+  geom_point(aes(x=Year, y = Height, col=as.factor(Medal))) +
+  ggtitle("Cycling Height Over Time")
+
+diving_height_time <- ggplot(diving)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Diving Height Over Time")
+
+fencing_height_time <- ggplot(fencing)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Fencing Height Over Time")
+
+gymnastics_height_time <- ggplot(gymnastics)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Gymnastics Height Over Time")
+
+shooting_height_time <- ggplot(shooting)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Shooting Height Over Time")
+
+swimming_height_time <- ggplot(swimming)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Swimming Height Over Time")
+
+weightlifting_height_time <- ggplot(weightlifting)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Weightlifting Height Over Time")
+
+wrestling_height_time <- ggplot(wrestling)+
+  geom_point(aes(x=Year,y=Height, col=as.factor(Medal))) +
+  ggtitle("Wrestling Height Over Time")
+```
+
+```{r}
+ggarrange(cycling_height_time, diving_height_time, fencing_height_time, gymnastics_height_time, shooting_height_time, swimming_height_time, weightlifting_height_time, wrestling_height_time, ncol=2, nrow=2)
+```
+
+-- height distributions seem to increase in range over time, possibly due to greater number of athletes competing over time, in general.
+
+# Weight
+
+```{r, warning=FALSE}
+cycling_weight <- ggplot(cycling)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Cycling Weight")
+
+diving_weight <- ggplot(diving)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Diving Weight")
+
+fencing_weight <- ggplot(fencing)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Fencing Weight")
+
+gymnastics_weight <- ggplot(gymnastics)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Gymnastics Weight")
+
+shooting_weight <- ggplot(shooting)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Shooting Weight")
+
+swimming_weight <- ggplot(swimming)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Swimming Weight")
+
+weightlifting_weight <- ggplot(weightlifting)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Weightlifting Weight")
+
+wrestling_weight <- ggplot(wrestling)+
+  geom_density(aes(x=Weight, col=as.factor(Medal))) +
+  ggtitle("Wrestling Weight")
+```
+
+```{r}
+ggarrange(cycling_weight, diving_weight, fencing_weight, gymnastics_weight, shooting_weight, swimming_weight, weightlifting_weight, wrestling_weight, ncol=2, nrow=2)
+```
+
+--wrestling, weightlifting, shooting skewed right
+
+--cycling, fencing, diving, gymnastics, swimming all relatively symmatric and normally distributed
+
+
+
+```{r, warning=FALSE}
+cycling_weight_time <- ggplot(cycling)+
+  geom_point(aes(x=Year, y = Weight, col=as.factor(Medal))) +
+  ggtitle("Cycling Weight Over Time")
+
+diving_weight_time <- ggplot(diving)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Diving Weight Over Time")
+
+fencing_weight_time <- ggplot(fencing)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Fencing Weight Over Time")
+
+gymnastics_weight_time <- ggplot(gymnastics)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Gymnastics Weight Over Time")
+
+shooting_weight_time <- ggplot(shooting)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Shooting Weight Over Time")
+
+swimming_weight_time <- ggplot(swimming)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Swimming Weight Over Time")
+
+weightlifting_weight_time <- ggplot(weightlifting)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Weightlifting Weight Over Time")
+
+wrestling_weight_time <- ggplot(wrestling)+
+  geom_point(aes(x=Year,y=Weight, col=as.factor(Medal))) +
+  ggtitle("Wrestling Weight Over Time")
+```
+
+```{r}
+ggarrange(cycling_weight_time, diving_weight_time, fencing_weight_time, gymnastics_weight_time, shooting_weight_time, swimming_weight_time, weightlifting_weight_time, wrestling_weight_time, ncol=2, nrow=2)
+```
+
+-- height distributions seem to increase in range over time, possibly due to greater number of athletes competing over time, in general.
+
+
+# Modeling
+
+## cycling
+
+```{r}
+cycling_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=cycling, family = "binomial")
+summary(cycling_glm)
+```
+
+
+prob of medal if from developed country is 66.33%
+
+The coefficient for math says that, holding all other predictors constant, we will see 97.03% increase in the odds of getting a medal for athletes from developed countries, exp(0.678207) = 1.97034.
+
+## diving
+
+```{r}
+diving_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=diving, family = "binomial")
+summary(diving_glm)
+```
+
+prob of medal if from developed country is 42.27%
+
+The coefficient for math says that, holding all other predictors constant, we will see 26.78% decrease in the odds of getting a medal for athletes from developed countries, exp(-0.31172) = 0.732187.
+
+## fencing
+
+```{r}
+fencing_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=fencing, family = "binomial")
+summary(fencing_glm)
+```
+
+prob of medal if from developed country is 55.10%
+
+The coefficient for math says that, holding all other predictors constant, we will see 22.74% increase in the odds of getting a medal for athletes from developed countries, exp(.204904) = 1.2274.
+
+## gymnastics
+
+```{r}
+gymnastics_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=gymnastics, family = "binomial")
+summary(gymnastics_glm)
+```
+
+prob of medal if from developed country is 30.38%
+
+The coefficient for math says that, holding all other predictors constant, we will see 56.37% decrease in the odds of getting a medal for athletes from developed countries, exp(-0.829361) = 0.4363.
+
+## shooting
+
+```{r}
+shooting_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=shooting, family = "binomial")
+summary(shooting_glm)
+```
+
+
+## swimming
+
+```{r}
+swimming_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=swimming, family = "binomial")
+summary(swimming_glm)
+```
+
+prob of medal if from developed country is 70.66%
+
+The coefficient for math says that, holding all other predictors constant, we will see ~141% increase in the odds of getting a medal for athletes from developed countries, exp(0.879051) = 2.40861.
+
+
+## weightlifting
+
+```{r}
+weightlifting_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=weightlifting, family = "binomial")
+summary(weightlifting_glm)
+```
+
+## wrestling
+
+```{r}
+wrestling_glm <- glm(Medal ~ Age + Height + Weight + Developed, data=wrestling, family = "binomial")
+summary(wrestling_glm)
+```
+
+
+```{r}
+round(exp(coef(cycling_glm)),3)
+round(exp(coef(diving_glm)),3)
+round(exp(coef(fencing_glm)),3)
+round(exp(coef(gymnastics_glm)),3)
+round(exp(coef(shooting_glm)),3)
+round(exp(coef(swimming_glm)),3)
+round(exp(coef(weightlifting_glm)),3)
+round(exp(coef(wrestling_glm)),3)
+```
+
+--Indication of Developed Country is significant for cycling, fencing, diving, swimming, and gymnastics
+
+# LASSO
+
+
+library(glmnet)
+
+olympic_LASSO_dat <- subset(olympic, select = c(Age, Sex, Year, Height, Weight, Developed, Medal))
+
+x_vars <- model.matrix(Medal~. , olympic_LASSO_dat)[,-1]
+y_var <- olympic_LASSO_dat$Medal
+lambda_seq <- 10^seq(2, -2, by = -.1)
+
+set.seed(472)
+train = sample(1:nrow(x_vars), nrow(x_vars)/2)
+x_test = (-train)
+y_test = y_var[x_test]
+ 
+cv_output <- cv.glmnet(x_vars[train,], y_var[train],
+                       alpha = 1, lambda = lambda_seq, 
+                       nfolds = 5, family = "binomial")
+best_lambda <- cv_output$lambda.min
+
+olympic_lasso <- glmnet(x_vars[train,], y_var[train], alpha = 1, lambda = best_lambda, family = "binomial")
+pred_lasso <- predict(olympic_lasso, s = best_lambda, newx = x_vars[x_test,])
+
+coef(olympic_lasso)
+
+
+# Two-Sample Tests for equality of proportions
+
+## Proportions of developed/not developed
+
+```{r, echo = FALSE}
+cycling_prop <- prop.test(x = c(length(which(cycling$Developed == 0)),length(which(cycling$Developed == 1))), n = c(length(cycling$Developed),length(cycling$Developed)), alternative = "two.sided")
+cycling_prop
+```
+
+```{r, echo = FALSE}
+diving_prop <- prop.test(x = c(length(which(diving$Developed == 0)),length(which(diving$Developed == 1))), n = c(length(diving$Developed),length(diving$Developed)), alternative = "two.sided")
+diving_prop
+```
+
+```{r, echo = FALSE}
+fencing_prop <- prop.test(x = c(length(which(fencing$Developed == 0)),length(which(fencing$Developed == 1))), n = c(length(fencing$Developed),length(fencing$Developed)), alternative = "two.sided")
+fencing_prop
+```
+
+```{r, echo = FALSE}
+gymnastics_prop <- prop.test(x = c(length(which(gymnastics$Developed == 0)),length(which(gymnastics$Developed == 1))), n = c(length(gymnastics$Developed),length(gymnastics$Developed)), alternative = "two.sided")
+gymnastics_prop
+```
+
+```{r, echo = FALSE}
+shooting_prop <- prop.test(x = c(length(which(shooting$Developed == 0)),length(which(shooting$Developed == 1))), n = c(length(shooting$Developed),length(shooting$Developed)), alternative = "two.sided")
+shooting_prop
+```
+
+```{r, echo = FALSE}
+swimming_prop <- prop.test(x = c(length(which(swimming$Developed == 0)),length(which(swimming$Developed == 1))), n = c(length(swimming$Developed),length(swimming$Developed)), alternative = "two.sided")
+swimming_prop
+```
+
+```{r, echo = FALSE}
+weightlifting_prop <- prop.test(x = c(length(which(weightlifting$Developed == 0)),length(which(weightlifting$Developed == 1))), n = c(length(weightlifting$Developed),length(weightlifting$Developed)), alternative = "two.sided")
+weightlifting_prop
+```
+
+```{r, echo = FALSE}
+wrestling_prop <- prop.test(x = c(length(which(wrestling$Developed == 0)),length(which(wrestling$Developed == 1))), n = c(length(wrestling$Developed),length(wrestling$Developed)), alternative = "two.sided")
+wrestling_prop
+```
+
+## Of those who medalled, proportions of developed or not
+
+```{r}
+cyclingMedal <- subset(cycling, Medal == 1)
+divingMedal <- subset(diving, Medal == 1)
+fencingMedal <- subset(fencing, Medal == 1)
+gymnasticsMedal <- subset(gymnastics, Medal == 1)
+shootingMedal <- subset(shooting, Medal == 1)
+swimmingMedal <- subset(swimming, Medal == 1)
+weightliftingMedal <- subset(weightlifting, Medal == 1)
+wrestlingMedal <- subset(wrestling, Medal == 1)
+```
+
+
+```{r, echo = FALSE}
+cycling_propMedal <- prop.test(x = c(length(which(cyclingMedal$Developed == 0)),length(which(cyclingMedal$Developed == 1))), n = c(length(cyclingMedal$Developed),length(cyclingMedal$Developed)), alternative = "two.sided")
+cycling_propMedal
+```
+
+```{r, echo = FALSE}
+diving_propMedal <- prop.test(x = c(length(which(divingMedal$Developed == 0)),length(which(divingMedal$Developed == 1))), n = c(length(divingMedal$Developed),length(divingMedal$Developed)), alternative = "two.sided")
+diving_propMedal
+```
+
+```{r, echo = FALSE}
+fencing_propMedal <- prop.test(x = c(length(which(fencingMedal$Developed == 0)),length(which(fencingMedal$Developed == 1))), n = c(length(fencingMedal$Developed),length(fencingMedal$Developed)), alternative = "two.sided")
+fencing_propMedal
+```
+
+```{r, echo = FALSE}
+gymnastics_propMedal <- prop.test(x = c(length(which(gymnasticsMedal$Developed == 0)),length(which(gymnasticsMedal$Developed == 1))), n = c(length(gymnasticsMedal$Developed),length(gymnasticsMedal$Developed)), alternative = "two.sided")
+gymnastics_propMedal
+```
+
+```{r, echo = FALSE}
+shooting_propMedal <- prop.test(x = c(length(which(shootingMedal$Developed == 0)),length(which(shootingMedal$Developed == 1))), n = c(length(shootingMedal$Developed),length(shootingMedal$Developed)), alternative = "two.sided")
+shooting_propMedal
+```
+
+```{r, echo = FALSE}
+swimming_propMedal <- prop.test(x = c(length(which(swimmingMedal$Developed == 0)),length(which(swimmingMedal$Developed == 1))), n = c(length(swimmingMedal$Developed),length(swimmingMedal$Developed)), alternative = "two.sided")
+swimming_propMedal
+```
+
+```{r, echo = FALSE}
+weightlifting_propMedal <- prop.test(x = c(length(which(weightliftingMedal$Developed == 0)),length(which(weightliftingMedal$Developed == 1))), n = c(length(weightliftingMedal$Developed),length(weightliftingMedal$Developed)), alternative = "two.sided")
+weightlifting_propMedal
+```
+
+```{r, echo = FALSE}
+wrestling_propMedal <- prop.test(x = c(length(which(wrestlingMedal$Developed == 0)),length(which(wrestlingMedal$Developed == 1))), n = c(length(wrestlingMedal$Developed),length(wrestlingMedal$Developed)), alternative = "two.sided")
+wrestling_propMedal
+```
+
+```{r, include = FALSE}
+library(tidyverse) # data manip
+library(ISLR) # data
+library(GGally) # pairs plots
+library(e1071) #svm
+```
+cycling, diving, fencing, gymnastics, shooting, swimming, weightlifting, wrestling
+
+```{r}
+nrow(diving)
+0.7*nrow(diving)
+0.3*nrow(diving)
+diving_train <- cycling[1:1304,]
+diving_test <- cycling[1305:1862,]
+```
+
+```{r}
+0.7*nrow(fencing)
+nrow(fencing)
+nrow(fencing) - 3867
+fencing_train <- fencing[1:3867,]
+fencing_test <- fencing[3868:5523,]
+```
+
+```{r}
+0.7*nrow(gymnastics)
+0.3*nrow(gymnastics)
+nrow(gymnastics) 
+gymnastics_train <- gymnastics[1:10981,]
+gymnastics_test <- gymnastics[10982:15686,]
+```
+
+```{r}
+0.7*nrow(shooting)
+0.3*nrow(shooting)
+nrow(shooting)
+shooting_train <- shooting[1:4665,]
+shooting_test <- shooting[4666:6663,]
+```
+
+```{r}
+0.7*nrow(swimming)
+0.3*nrow(swimming)
+
+swimming_train <- swimming[1:12520,]
+swimming_test <- swimming[12521:17885,]
+```
+
+```{r}
+0.7*nrow(weightlifting)
+0.3*nrow(weightlifting)
+
+weightlifting_train <- weightlifting[1:1892,]
+weightlifting_test <- weightlifting[1893:2702,]
+```
+
+```{r}
+0.7*nrow(wrestling)
+0.3*nrow(wrestling)
+
+wrestling_train <- wrestling[1:3253,]
+wrestling_test <- wrestling[3254:4647,]
+```
+
+
+
+```{r}
+cplot <- ggplot(cycling) +
+  geom_point(aes(x=Weight, y=Height, col = as.factor(Medal)))
+cplot
+
+0.7*nrow(cycling)
+0.3*nrow(cycling)
+
+cycling_train <- cycling[1:5026,]
+cycling_test <- cycling[5027:7181,]
+
+7181 - 5026
+
+log.reg.model_cyc <- glm(Medal ~ Height +Weight, data = cycling_train, family = "binomial")
+summary(log.reg.model_cyc)
+
+#get the estimated y value (0/1) for each point in the grid
+yhat_cyc <- predict(log.reg.model_cyc, newdata = cycling_test, type = "response")
+yhat_cyc <- (yhat_cyc > 0.5)*1
+cycling_test$yhat <- yhat_cyc
+summary(yhat_cyc)
+
+#confMat_log <- table(actual=cycling_test$Medal, predicted=cycling_test$yhat)
+#(confMat_log[1,2] + confMat_log[2,1])/dim(cycling_test)[1]
+
+
+
+#cyc_fig <- ggplot()+ geom_tile(aes(x = Weight, y = Height, fill = as.factor(yhat)), data = cycling_test, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = cycling, aes(x = Weight, y = Height, col = as.factor(Medal))) + labs(col = "Observed Y")
+#cyc_fig 
+
+
+svmOut <-svm(Medal ~ Height , data = cycling_train, kernel = "linear", degree = 2)
+summary(svmOut)
+yhat_grid3 <- predict(svmOut, newdata = cycling_test, type = "response")
+#yhat_grid3 <- (yhat_grid3 > 0.5)*1
+cycling_test$yhat3 <- yhat_grid3
+summary(yhat_grid3)
+
+#confMat_svmLIN <- table(actual=cycling_test$Medal, predicted=cycling_test$yhat)
+#(confMat_svmLIN[1,2] + confMat_svmLIN[2,1])/dim(cycling_test)[1]
+#(confMat_svmLIN[1,1])/(confMat_svmLIN[1,1]+confMat_svmLIN[2,1])
+#(confMat_svmLIN[1,1])/(confMat_svmLIN[1,1]+confMat_svmLIN[1,2])
+#(confMat_svmLIN[2,2])/(confMat_svmLIN[2,2]+confMat_svmLIN[2,1])
+
+#cyc_fig2 <- ggplot()+ geom_tile(aes(x = Weight, y = Height, fill = as.factor(yhat3)), data = cycling_test, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = cycling, aes(x = Weight, y = Height, col = as.factor(Medal))) + labs(col = "Observed Y")
+#cyc_fig2
+
+
+#work around: over-sampling-> sample more of the unbalanced class
+#resample to 1000...on avg. 50/50 split to train
+#canvas-->unbalanced classification issue slide (diff weight to fit the model...) -->adding weight to minor category
+
+
+wt =ifelse(cycling_train$Medal==0, 1, 1000)
+fit_logit_wt_cyc <-glm(Medal ~ Height + Weight, data = cycling_train,family=binomial,weights = wt)
+#Log-odd ratio
+pred_logit_wt_cyc<-predict(fit_logit_wt_cyc,newdata=cycling_test)
+
+# Classify a sample as 0 when its predicted log-odd ratio is negative
+y_hat_wt=ifelse(pred_logit_wt_cyc>=0, 1, 1000)
+summary(y_hat_wt)
+
+mean(y_hat_wt!=cycling_test$Medal)
+
+cycling_test$yhat_wt <- y_hat_wt
+
+
+cyc_fig_wt <- ggplot()+ geom_tile(aes(x = Weight, y = Height, fill = as.factor(yhat_wt)), data = cycling_test, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = cycling, aes(x = Weight, y = Height, col = as.factor(Medal))) + labs(col = "Observed Y")
+cyc_fig_wt
+
+
+
+svmOut_wt <-svm(Medal ~ Height , data = cycling_train, kernel = "linear", degree = 2, weight = wt)
+summary(svmOut_wt)
+yhat_grid_svmwt <- predict(svmOut_wt, newdata = cycling_test)
+summary(yhat_grid_svmwt)
+y_hat_wt=ifelse(pred_logit_wt_cyc>=0, 1, 1000)
+
+#yhat_grid3 <- (yhat_grid3 > 0.5)*1
+cycling_test$yhat3 <- yhat_grid3
+summary(yhat_grid3)
+
+cyc_fig2 <- ggplot()+ geom_tile(aes(x = Weight, y = Height, fill = as.factor(yhat3)), data = cycling_test, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = cycling, aes(x = Weight, y = Height, col = as.factor(Medal))) + labs(col = "Observed Y")
+cyc_fig2
+```
+
+
+```{r}
+library(rpart)
+library(ROSE)
+```
+
+```{r}
+#imb <- rpart(Medal ~ Height + Weight, data = cycling_train)
+#pred.treeimb <- predict(imb, newdata = cycling_test)
+#accuracy.meas(cycling_test$Medal, pred.treeimb[,2])
+
+#data_balanced_over <- ovun.sample(Medal ~ Height + Weight, data = cycling_train, method = "over",N = nrow(cycling))$data
+#table(data_balanced_over$Medal)
+
+data.rose1 <- ROSE(Medal ~ Height + Weight , data = cycling_train, seed = 1)$data
+table(data.rose1$Medal)
+
+#data.rose2 <- ROSE(Medal ~ Height + Weight, data = cycling_test, seed = 1)$data
+#table(data.rose2$Medal)
+
+#cycling_rose <- rbind(data.rose1, data.rose2[,1:3])
+
+#Precision = TP / (TP + FP) out of observations labeled as positive, how many are actually labeled positive
+#Sensitivity = TP / (TP + FN) how many observations of positive class are labeled correctly.
+#Specificity = TN / (TN + FP) how many observations of negative class are labeled correctly.
+
+
+# Bayes Classifier
+
+log.reg.model_cyc.rose <- glm(Medal ~ Height +Weight, data = data.rose1, family = "binomial")
+#summary(log.reg.model_cyc.rose)
+
+#get the estimated y value (0/1) for each point in the grid
+yhat_cyc.logRose <- predict(log.reg.model_cyc.rose, newdata = cycling_test, type = "response")
+yhat_cyc.logRose <- (yhat_cyc.logRose > 0.5)*1
+cycling_test$yhat.logRose <- as.factor(yhat_cyc.logRose)
+summary(cycling_test$yhat.logRose)
+
+confMat_logRose <- table(actual=cycling_test$Medal, predicted=cycling_test$yhat.logRose)
+(confMat_logRose[1,2] + confMat_logRose[2,1])/dim(cycling_test)[1]
+(confMat_logRose[1,1])/(confMat_logRose[1,1]+confMat_logRose[2,1])
+(confMat_logRose[1,1])/(confMat_logRose[1,1]+confMat_logRose[1,2])
+(confMat_logRose[2,2])/(confMat_logRose[2,2]+confMat_logRose[2,1])
+#error rate is 0.361949
+#precision is 0.9173913
+#sensitivity is 0.6552795
+#specificity is 0.4887892
+
+
+
+# Linear Rose SVM
+
+svmOut_rose <-svm(Medal ~ Height +Weight, data = data.rose1, kernel = "linear", degree = 2)
+summary(svmOut_rose)
+yhat_grid_rosesvm <- predict(svmOut_rose, newdata = cycling_test, type = "response")
+#yhat_grid3 <- (yhat_grid3 > 0.5)*1
+cycling_test$yhat_rosesvm <- yhat_grid_rosesvm
+summary(yhat_grid_rosesvm)
+
+    
+confMat_roseLINsvm<-table(actual=cycling_test$Medal, predicted=cycling_test$yhat_rosesvm)
+(confMat_roseLINsvm[1,2] + confMat_roseLINsvm[2,1])/dim(cycling_test)[1]
+(confMat_roseLINsvm[1,1])/(confMat_roseLINsvm[1,1]+confMat_roseLINsvm[2,1])
+(confMat_roseLINsvm[1,1])/(confMat_roseLINsvm[1,1]+confMat_roseLINsvm[1,2])
+(confMat_roseLINsvm[2,2])/(confMat_roseLINsvm[2,2]+confMat_roseLINsvm[2,1])
+#error rate is 0.4566125
+#precision is 0.9058219
+#sensitivity is 0.547619
+#specificity is 0.5067265
+
+
+
+# Polynomial Rose SVM
+
+svmOut_rose2 <-svm(Medal ~ Height +Weight, data = data.rose1, kernel = "polynomial", degree = 2)
+summary(svmOut_rose2)
+yhat_grid_rosesvm2 <- predict(svmOut_rose2, newdata = cycling_test, type = "response")
+#yhat_grid3 <- (yhat_grid3 > 0.5)*1
+cycling_test$yhat_rosesvm2 <- yhat_grid_rosesvm2
+summary(yhat_grid_rosesvm2)
+
+
+confMat_rosePOLYsvm<-table(cycling_test$Medal, cycling_test$yhat_rosesvm2)
+(confMat_rosePOLYsvm[1,2] + confMat_rosePOLYsvm[2,1])/dim(cycling_test)[1]
+(confMat_rosePOLYsvm[1,1])/(confMat_rosePOLYsvm[1,1]+confMat_rosePOLYsvm[2,1])
+(confMat_rosePOLYsvm[1,1])/(confMat_rosePOLYsvm[1,1]+confMat_rosePOLYsvm[1,2])
+(confMat_rosePOLYsvm[2,2])/(confMat_rosePOLYsvm[2,2]+confMat_rosePOLYsvm[2,1])
+#error rate is 0.1308585
+#precision is 0.8962536
+#sensitivity is 0.9658385
+#specificity is 0.03139013
+
+
+
+# Polynomial Rose SVM
+
+svmOut_rose3 <-svm(Medal ~ Height +Weight, data = data.rose1, kernel = "radial", degree = 2)
+summary(svmOut_rose3)
+yhat_grid_rosesvm3 <- predict(svmOut_rose3, newdata = cycling_test, type = "response")
+#yhat_grid3 <- (yhat_grid3 > 0.5)*1
+cycling_test$yhat_rosesvm3 <- yhat_grid_rosesvm3
+summary(yhat_grid_rosesvm3)
+
+
+confMat_roseRADsvm<-table(cycling_test$Medal, cycling_test$yhat_rosesvm3)
+(confMat_roseRADsvm[1,2] + confMat_roseRADsvm[2,1])/dim(cycling_test)[1]
+(confMat_roseRADsvm[1,1])/(confMat_roseRADsvm[1,1]+confMat_roseRADsvm[2,1])
+(confMat_roseRADsvm[1,1])/(confMat_roseRADsvm[1,1]+confMat_roseRADsvm[1,2])
+(confMat_roseRADsvm[2,2])/(confMat_roseRADsvm[2,2]+confMat_roseRADsvm[2,1])
+#error rate is 0.3466357
+#precision is 0.9134682
+#sensitivity is 0.6775362
+#specificity is 0.4439462
+
+
+
+#contingency table (confusion matrix) --> actual medal/predicted medal
+
+#lmitation -> two groups are not linearly separted 
+
+#cyc_fig_rosesvm <- ggplot()+ geom_tile(aes(x = Weight, y = Height, fill = as.factor(yhat_rosesvm)), data = cycling_test, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = cycling, aes(x = Weight, y = Height, col = as.factor(Medal))) + labs(col = "Observed Y")
+#cyc_fig_rosesvm
+
+
+#gfig2 <- ggplot()+ geom_tile(aes(x = x1, y = x2, fill = as.factor(yhat2)), data = xgrid, alpha = .5) + labs(fill = "Predicted Y") + geom_point(data = mydf, aes(x = x1, y = x2, col = as.factor(y))) + labs(col = "Observed Y")
+#gfig2 
+```
+```
+
